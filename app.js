@@ -77,10 +77,111 @@ app.use(express.static(path.join(__dirname, "/public")));
 
 const expressError = require('./utils/expressError.js');
 
+// Socket io
+const http = require('http')
+const server = http.createServer(app);
+const {Server} = require('socket.io');
+const Chat = require('./models/chat.js')
+const Room = require('./models/room.js')
+const io = new Server(server);
 
-app.listen(3000 , () => {
-    console.log("Server is Listening");
+let onlineUsers = new Map();
+
+server.listen(3000,() => console.log("Server is listening"))
+
+io.on('connection', (socket) => {
+
+    console.log(`User connected with socket ID: ${socket.id}`);
+    socket.on('login', async (userId) => {
+        onlineUsers.set(userId, socket.id);
+
+        await Room.find({ participants: userId })
+            .populate('participants') 
+            .then((res) => {
+                socket.emit('all-rooms', res);
+            }).catch((err) => {
+                console.error('Error loading messages:', err);
+            });
+    });
+
+    socket.on('join-room', async ({ userId, otherUserId }) => {
+            // console.log(userId)
+            // Check if the room between these two users already exists
+            let room = await Room.findOne({
+                participants: { $all: [userId, otherUserId] }
+            });
+    
+            // If the room doesn't exist, create a new one
+            if (!room) {
+                room = new Room({
+                    participants: [userId, otherUserId],
+                    roomName: `${userId}-${otherUserId}`,  // or generate any unique name
+                });
+                await room.save();
+                console.log('New room created:', room._id);
+            }
+    
+            const roomId = room._id.toString();
+    
+        // Now the user joins the room (socket.io room)
+        socket.join(roomId);
+
+        // // Load previous messages for this room
+        await Chat.find({ room: roomId })
+            .sort({ timestamp: 1 }) // Sort by timestamp (oldest to newest)
+            .populate('sender') // Optionally populate sender details
+            .then((res) => {
+                socket.emit('previous-messages', {res,roomId});
+            }).catch((err) => {
+                console.error('Error loading messages:', err);
+            });
+    });
+
+    socket.on('send-message', async (data) => {
+        const { sender, roomId, content } = data;
+        console.log(sender,roomId,content)
+
+        const contentTrim = content
+
+        if(contentTrim.length != 0){
+            // Save the message to the database
+            const newMessage = new Chat({
+                room: roomId,
+                sender,
+                content : contentTrim,
+            });
+
+            await newMessage.save();
+            io.to(roomId).emit('receive-message', newMessage);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        let disconnectedUserId;
+        for (let [userId, socketId] of onlineUsers.entries()) {
+            if (socketId === socket.id) {
+                disconnectedUserId = userId;
+                onlineUsers.delete(userId);
+                break;
+            }
+        }
+        console.log(`User disconnected ${socket.id}`)
+    });
 })
+// io.to(room).emit()
+// io - entire circite
+// socket.broadcast.emit() (message usko chhod ke sabko jaayega)
+
+
+
+
+
+
+
+
+
+
+
 
 app.use(session(sessionOption));
 app.use(flash());

@@ -1,8 +1,6 @@
 <% layout("/layouts/boilerPlate") -%>
 
-<body>
-    
-
+<body id="body">
     <div class="row mt-3">
         <div class="col-8 offset-3">
             <h3><%= listing.title %></h3>
@@ -11,7 +9,7 @@
             <img src="<%= listing.image.url %>" class="card-img-top show-img" alt="listing-image">
             <div class="card-body">
                 <p class="card-text">
-                    <i>Owned by : <%= listing.owner.username %> </i><br>
+                    <i>Owned by : @<%= listing.owner.username %> </i><br>
                     <%= listing.description %> <br>
                     &#8377; <%= listing.price.toLocaleString("en-IN") %> <br>
                     <%= listing.location %> <br>
@@ -28,6 +26,11 @@
         <form action="/listings/<%= listing._id %>?_method=DELETE" method="POST">
             <button class="btn btn-dark offset-5" >Delete</button>
         </form>
+    </div>
+    <% } else if(currUser) { %>
+    <div class="btns">
+        <a class="btn btn-dark col-2 offset-3 edit-btn">Book Your Place</a>
+        <button id="chat-btn" class="btn btn-dark col-2 offset-2 edit-btn">Talk With owner</button>
     </div>
     <% } %>
 
@@ -82,4 +85,19 @@
     </div>
     <br>
     <br>
+
+    <div id="owner-data" data-user='<%= JSON.stringify(listing) %>'></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const ownerDataElement = document.getElementById('owner-data');
+        const ownerUser = JSON.parse(ownerDataElement.getAttribute('data-user'));
+
+        const chatbtn = document.getElementById('chat-btn')
+        chatbtn.addEventListener('click', (e) => {
+            e.preventDefault()
+            chatSpace.classList.toggle('hide')
+            chatWith.innerText = ownerUser.owner.username
+            join(currUser._id,ownerUser.owner._id)
+        })
+    </script>
 </body>

@@ -88,7 +88,6 @@
         <div class="icon"><i class="fa-solid fa-ship"></i></i></div>
         <p>Boats</p>
       </div>
-
       <div class="tax-toggle">
         <div class="form-check-reverse form-switch">
           <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
@@ -115,6 +114,8 @@
             <% } %>
     </div>
 
+    <!-- <div id="user-data" data-user='<%= JSON.stringify(currUser) %>'></div>
+    <script src="/socket.io/socket.io.js"></script> -->
     <script>
       let taxSwitch = document.getElementById("flexSwitchCheckDefault");
       taxSwitch.addEventListener("click", () => {
@@ -123,5 +124,10 @@
           info.classList.toggle("hide")
         }
       })
+
+      // const userDataElement = document.getElementById('user-data');
+      // const currUser = JSON.parse(userDataElement.getAttribute('data-user'));
+      // const socket = io();
+      // socket.emit('login', currUser._id);
     </script>
 </body>

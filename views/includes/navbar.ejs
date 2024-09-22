@@ -21,6 +21,159 @@
     font-size: 0.9cd rem;
     padding: 0.5rem 3rem 0.5rem 3rem;
   }
+
+  .flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .chat-btn {
+    border: none;
+    background-color: white;
+    font-size: large;
+    font-weight: 600;
+  }
+
+  .chat {
+    position: absolute;
+    background-color: #f0f0f0;
+    right: 30px;
+    top: 100px;
+    height: 80vh;
+    width: 400px;
+    z-index: 10;
+    border-radius: 20px;
+    padding-inline: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chatroom {
+    position: absolute;
+    background-color: #f0f0f0;
+    right: 30px;
+    top: 100px;
+    height: 80vh;
+    width: 400px;
+    z-index: 10;
+    border-radius: 20px;
+    padding-inline: 10px;
+    padding-block: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+  }
+
+  .enter-chat {
+    height: 60px;
+    cursor: pointer;
+    padding: 20px;
+    background-color: #0078D4;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+  }
+
+  .enter-chat:hover {
+    background-color: #005bb5;
+  }
+
+  .chat-with {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #0078D4;
+        color: white;
+        padding: 15px;
+        height: 50px;
+        width: 400px;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        box-shadow: 0 4px 2px -2px gray;
+    }
+
+    #chat-room {
+        flex-grow: 1;
+        padding: 15px;
+        width: 400px;
+        background-color: #f0f0f0;
+        overflow-y: auto; 
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .input-box {
+        display: flex;
+        padding: 10px;
+        background-color: #f0f0f0;
+        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        width: 400px;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+    }
+
+    #message-input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        outline: none;
+    }
+
+    #send-btn {
+        background-color: #0078D4;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin-left: 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+
+    #send-btn:hover {
+        background-color: #005bb5;
+    }
+
+    #disconnect {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 50px;
+        width: 50px;
+        border-radius: 50px;
+        color: black;
+        background-color: #0078D4;
+        border: none;
+    }
+
+    .owner-chat {
+        padding-inline: 10px;
+        padding-block: 5px;
+        border-radius: 10px;
+        width: fit-content;
+        max-width: 300px;
+        background-color: #0078D4;
+    }
+
+    .user-chat {
+        padding-inline: 10px;
+        padding-block: 5px;
+        border-radius: 10px;
+        width: fit-content;
+        max-width: 300px;
+        background-color: #005bb5;
+        align-self: self-end;
+    }
+
+    .hide {
+      display: none;
+    }
 </style>
 
 <nav class="navbar navbar-expand-md bg-body-light border-bottom sticky-top">
@@ -45,9 +198,120 @@
             <a class="nav-link" href="/signup"><b>SignUp</b></a>
             <a class="nav-link" href="/login"><b>LogIn</b></a>
           <% } else { %>
-            <a class="nav-link" href="/logout"><b>LogOut</b></a>
+            <div class="flex">
+              <button class="chat-btn" id="chatBtn"><i class="fa-regular fa-comments"></i></button>
+              <a class="nav-link" href="/logout"><b>LogOut</b></a>
+            </div>
           <% } %>
         </div>
       </div>
     </div>
   </nav>
+  <div class="chatroom hide" id="chatRoom">
+    
+  </div>
+  <div class="chat hide" id="chatSpace">
+    <div class="chat-with">
+        <p id="chatWith"></p>
+        <button id="disconnect"><i class="fa-regular fa-circle-xmark"></i></button>
+    </div>
+    <div id="chat-room"></div>
+    <div class="input-box">
+        <input type="text" placeholder="Message" id="message-input">
+        <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <div id="user-data" data-user='<%= JSON.stringify(currUser) %>'></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const chatBtn = document.getElementById('chatBtn')
+    const chatRoom = document.getElementById('chatRoom')
+    chatBtn.addEventListener('click',() => {
+      chatRoom.classList.toggle('hide')
+    })
+
+    const chatSpace = document.getElementById('chatSpace')
+    const userDataElement = document.getElementById('user-data');
+    const currUser = JSON.parse(userDataElement.getAttribute('data-user'));
+    const chatWith = document.getElementById('chatWith')
+    const socket = io();
+    socket.emit('login', currUser._id);
+
+    socket.on('all-rooms',(rooms) => {
+      rooms.map(room => {
+        let roomName;
+        if(room.participants[0]._id === currUser._id){
+          roomName = room.participants[1].username
+        }else{
+          roomName = room.participants[0].username
+        }
+        const msgElement = document.createElement('div');                 
+        msgElement.textContent = `${roomName}`;
+        msgElement.classList.add('enter-chat');
+        msgElement.setAttribute('user1',room.participants[1]._id)
+        msgElement.setAttribute('user2',room.participants[0]._id)
+        msgElement.setAttribute('room',roomName)
+        msgElement.addEventListener('click', (e) => {
+          e.preventDefault()
+          chatRoom.classList.toggle('hide')
+          chatSpace.classList.toggle('hide')
+          chatWith.innerText = msgElement.getAttribute('room')
+          join(msgElement.getAttribute('user1'),msgElement.getAttribute('user2'))
+        })
+        chatRoom.appendChild(msgElement);
+      });
+    })
+
+    const disconnect = document.getElementById('disconnect')
+    disconnect.addEventListener('click',(e) => {
+      chatSpace.classList.add('hide')
+      chatRoom.classList.add('hide') 
+    })
+
+    function join(user1,user2){
+      socket.emit('join-room', {userId : user1,otherUserId : user2});
+    }
+
+    document.getElementById('send-btn').addEventListener('click', () => {
+      const messageInput = document.getElementById('message-input');
+      const message = new String(messageInput.value);
+      if(message){
+        socket.emit('send-message', {
+          sender: currUser._id,
+          roomId: room,
+          content: message
+        });
+      }
+      messageInput.value = ''; 
+    });
+
+    let room;
+    socket.on('previous-messages', ({res,roomId}) => {
+      const chatBox = document.getElementById('chat-room');
+      res.map(message => {
+        const msgElement = document.createElement('div');                 
+        msgElement.textContent = `${message.content}`;
+        if(message.sender._id === currUser._id){
+          msgElement.classList.add('user-chat')
+        }else{
+          msgElement.classList.add('owner-chat')
+        }
+        chatBox.appendChild(msgElement);
+      });
+      room = roomId
+    })
+
+    socket.on('receive-message', (message) => {
+      const chatBox = document.getElementById('chat-room');
+      const msgElement = document.createElement('div');
+      msgElement.textContent = `${message.content}`;
+      if(message.sender === currUser._id){
+        msgElement.classList.add('user-chat')
+      }else{
+        msgElement.classList.add('owner-chat')
+      }
+      chatBox.appendChild(msgElement);
+    });
+
+  </script>
