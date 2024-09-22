@@ -96,7 +96,7 @@
         chatbtn.addEventListener('click', (e) => {
             e.preventDefault()
             chatSpace.classList.toggle('hide')
-            chatWith.innerText = ownerUser.owner.username
+            chatWith.innerText = `@${ownerUser.owner.username}`
             join(currUser._id,ownerUser.owner._id)
         })
     </script>

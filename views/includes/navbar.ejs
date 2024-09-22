@@ -256,7 +256,7 @@
           e.preventDefault()
           chatRoom.classList.toggle('hide')
           chatSpace.classList.toggle('hide')
-          chatWith.innerText = msgElement.getAttribute('room')
+          chatWith.innerText = `@${msgElement.getAttribute('room')}`
           join(msgElement.getAttribute('user1'),msgElement.getAttribute('user2'))
         })
         chatRoom.appendChild(msgElement);
